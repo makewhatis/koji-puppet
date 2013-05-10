@@ -1,61 +1,51 @@
 
 # For simplicity, this one server will just do everything.
-node 'koji.ktdreyer.com' {
-	# System Kerberos configuration.
-	class {'krb5':
-		realm => 'KTDREYER.COM',
-		# Kerberos KDC.
-		admin_server => 'salt.ktdreyer.com',
-	}
+node 'koji.makewhatis.com' {
+  # System Kerberos configuration.
 
-	# Postgresql server.
-	class {'koji::db':
-		# bootstrap this user.
-		user => 'kdreyer',
-		auth => 'kerberos', realm => 'KTDREYER.COM',
-	}
+  class {'firewall': } 
 
-	# Koji-Hub software.
-	class {'koji::hub':
-		auth => 'kerberos',
-		db => '127.0.0.1',
-		web => 'koji.ktdreyer.com',
-		realm => 'KTDREYER.COM',
-	}
-	# Dependencies for koji::hub
-	class {'httpd': }
-	class {'iptables::webserver': }
-	class {'cacert': }
+  firewall { "00000 accept icmp":
+    proto => "icmp",
+    action => "accept"
+  }
 
-	# Koji-Web software.
-	class {'koji::web':
-		auth => 'kerberos',
-		hub => 'koji.ktdreyer.com',
-		realm => 'KTDREYER.COM',
-	}
+  firewall { "00001 accept established, related":
+    state  => ['ESTABLISHED', 'RELATED'],
+    proto  => 'all',
+    action => 'accept',
+  }
 
-	# Kojid software.
-	class {'koji::builder':
-		auth => 'kerberos',
-		hub => 'koji.ktdreyer.com',
-		allowed_scms => 'cvs.rpmfusion.org:/cvs/free:rpms',
-		realm => 'KTDREYER.COM',
-	}
-	# SCM uses SSH
-	class {'koji::builder::ssh': }
+  firewall { "00002 accept localhost":
+    source => '127.0.0.1',
+    proto  => 'all',
+    action => 'accept',
+  }
 
-	# Kojira software.
-	# Before activating this class, it is better to simply set up the user
-	# with the koji cmdline client.
-	#  $ koji add-user kojira --principal=kojira/kojiraserver.example.com@EXAMPLE.COM
-	#  $ koji grant-permission repo kojira
-	# (Otherwise, there will be an unprivileged kojira user automatically
-	# created when the service starts for the first time.  With Kerberos
-	# auth, you'll also end up with the UPN as the username, and you'll
-	# have to manually edit the Postgres DB.)
-	class {'koji::ra':
-		auth => 'kerberos',
-		hub => 'koji.ktdreyer.com',
-		realm => 'KTDREYER.COM',
-	}
+  firewall { "00080 http on port 80":
+    proto => "tcp",
+    dport => "80",
+    action => "accept"
+  }
+
+  firewall { "00080 http on port 80":
+    proto => "tcp",
+    dport => "80",
+    action => "accept"
+  }  
+
+  firewall { "65536 drop incoming packets":
+    action => 'drop'
+  }
+
+  # Dependencies for koji::hub
+  class {'apache': }
+
+  class {'krb5':
+    realm => 'MAKEWHATIS.COM',
+    # Kerberos KDC.
+    admin_server => 'salt.makewhatis.com',
+  }
+
+
 }
