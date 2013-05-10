@@ -1,0 +1,3 @@
+[submodule "modules/krb5"]
+	path = modules/krb5
+	url = git://github.com/IvanBayan/puppet-krb5.git
