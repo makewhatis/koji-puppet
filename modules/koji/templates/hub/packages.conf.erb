@@ -1,0 +1,8 @@
+# Aliases: Add here as many aliases as you need (with no limit).
+Alias /packages/ /mnt/koji/packages/
+<Directory "/mnt/koji/packages">
+    Options Indexes
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+</Directory>

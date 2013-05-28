@@ -7,29 +7,43 @@ class koji::hub($auth, $db, $web, $realm = 'NONE') {
 
 	package { 'koji-hub': ensure => installed }
 	
-	file { '/etc/httpd/conf/httpd.conf':
-		content => template('koji/hub/httpd.conf.erb'),
+	file { '/etc/httpd/conf.d/packages.conf':
+		content => template('koji/hub/packages.conf.erb'),
 		notify => Service['httpd'],
 		require => Package['httpd'],
 	}
+
+
 	file { '/etc/httpd/conf.d/ssl.conf':
 		content => template('koji/hub/ssl.conf.erb'),
 		notify => Service['httpd'],
-		require => Package['httpd'],
+		require => [
+			Package['mod_ssl'],
+			File[ "/etc/pki/tls/private/${::fqdn}.key"],
+			File[ "/etc/pki/tls/certs/${::fqdn}.crt"]
+		],
 	}
+
 	file { '/etc/koji-hub/hub.conf':
 		content => template('koji/hub/hub.conf.erb'),
 		notify => Service['httpd'],
 		require => Package['koji-hub'],
 	}
 
+
 	# Lock down the SSL private key
 	file { "/etc/pki/tls/private/${::fqdn}.key":
 		ensure => present, # sanity check
 		owner => root, group => root,
 		mode => 600,
+		source => "puppet:///modules/koji/ssl/${::fqdn}.key",
 	}
-	
+	file { "/etc/pki/tls/certs/${::fqdn}.crt":
+		ensure => present, # sanity check
+		owner => root, group => root,
+		mode => 644,
+		source => "puppet:///modules/koji/ssl/${::fqdn}.crt",
+	}
 	# Apache must be able to connect to Postgres
 	selboolean { 'httpd_can_network_connect_db':
 		persistent => true,
@@ -53,12 +67,7 @@ class koji::hub($auth, $db, $web, $realm = 'NONE') {
 	}
 
 	case $auth {
-		kerberos: {
-			if( $realm == 'NONE' ) {
-				fail('If you use Kerberos authentication, you must specify a $realm.')
-			}
-			class {'koji::hub::kerberos': }
-		}
+		kerberos: { fail('SSL auth not yet implemented.') }
 		ssl: { fail('SSL auth not yet implemented.') }
 		default: { fail('Unrecognized auth type for DB.') }
 	}
@@ -71,6 +80,13 @@ class koji::hub::kerberos {
 		owner => 'root', group => 'apache',
 		mode => '640',
 		notify => Service['httpd'],
+		require => Package['koji-hub'],
+	}
+}
+
+class koji::hub::ssl {
+	file { '/etc/koji-hub':
+		ensure => present,
 		require => Package['koji-hub'],
 	}
 }
