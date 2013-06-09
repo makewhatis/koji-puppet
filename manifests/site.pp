@@ -55,20 +55,16 @@ node 'koji.makewhatis.com' {
     ensure => present,
   }
 
-	krb5::realm{ 'MAKEWHATIS.COM':
-		default_domain  => 'makewhatis.com',
-		kdc             => ['localhost:88'],
-		admin_server    => 'localhost',  
-	}
 
-	postgresql::pg_hba_rule { 'allow postgres user to access any database':
-	    description => 'allow postgres user to access any database',
-	    type => 'local',
-	    database => 'all',
-	    user => 'postgres',
-	    auth_method => 'ident',
-	    order => '000',
-	}
+  postgresql::pg_hba_rule { 'allow postgres user to access any database':
+      description => 'allow postgres user to access any database',
+      type => 'local',
+      database => 'all',
+      user => 'postgres',
+      auth_method => 'ident',
+      order => '000',
+  }
+
 	# Postgresql server.
 	class { 'postgresql::server':
 	  config_hash => {
@@ -86,7 +82,8 @@ node 'koji.makewhatis.com' {
 	  require 		=> Postgresql::Role['koji'],
 	}
 	postgresql::database_user{'koji': 
-		password_hash => postgresql_password('koji', 'password')
+		password_hash => postgresql_password('koji', 'password'),
+    require   => Class['Postgresql::Server']
 	}
 
 	#postgresql::database_grant{'koji':
